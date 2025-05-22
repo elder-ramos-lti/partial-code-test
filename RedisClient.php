@@ -38,8 +38,10 @@ class RedisClient
         return $this->r->exists($key);
     }
 
-    public function sadd($key, $value)
+    public function sadd($key, $value, $ttl = 0)
     {
-        return $this->r->sadd($key, $value);
+        $saddResult = $this->r->sadd($key, $value);
+        $this->r->expire($key, $ttl);
+        return $saddResult;
     }
 }

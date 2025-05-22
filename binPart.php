@@ -12,33 +12,31 @@ class BinPart
         $this->redis = new RedisClient();
     }
 
-    function gerarCodigoApostaTimestamp()
+    // $i is the number of the attempt
+    function gerarCodigoApostaTimestamp($i = 0)
     {
         $maxAttempts = 100; // Prevent infinite loop
         $attempts = 0;
 
         // Get the current set of randParts from Redis
-        $existentRand = $this->redis->get('randPart');
-        if (is_string($existentRand) && !empty($existentRand)) {
-            $existentRand = json_decode($existentRand, true);
-        } else {
-            $existentRand = [];
-        }
-
         do {
             $randByte = random_bytes(2);
-            $randPart = strtoupper(bin2hex($randByte));
+            $randPart = str_pad(strtoupper(bin2hex($randByte)), 4, '0', STR_PAD_LEFT);
             $attempts++;
+            $existentRand = $this->redis->sadd('randPart', $randPart, 5);
             if ($attempts > $maxAttempts) {
                 throw new Exception("Unable to generate unique randPart after $maxAttempts attempts.");
             }
-        } while (isset($existentRand[$randPart]));
+            if ($existentRand === 0) {
+                if ($attempts >= 2) {
+                    echo "ATTEMPT: $attempts at $i\n";
+                }
+                echo "Duplicate code retrying: $randPart at $i\n";
+            }
+        } while ($existentRand === 0);
 
         // Store as associative array for fast lookup
-        $existentRand[$randPart] = true;
-        $this->redis->set('randPart', json_encode($existentRand));
-
-        return str_pad($randPart, 4, '0', STR_PAD_LEFT);
+        return $randPart;
     }
 
     function resetRandPart()

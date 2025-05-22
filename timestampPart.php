@@ -25,7 +25,7 @@ class TimestampPart
         );
 
         // Use sadd to Redis to ensure uniqueness
-        $existentRand = $this->redis->sadd('timestampPart', $timePart);
+        $existentRand = $this->redis->sadd('timestampPart', $timePart, 5);
         if ($existentRand === 0) {
             // If the code already exists, return false
             return false;
